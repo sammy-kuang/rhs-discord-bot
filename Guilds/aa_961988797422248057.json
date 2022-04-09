@@ -1,0 +1,22 @@
+{
+  "notifications": [
+    {
+      "message": "MEETING",
+      "day_of_week": "3",
+      "time": "1520",
+      "channel_id": 961988797933948969
+    },
+    {
+      "message": "SOMETHINGELSE",
+      "day_of_week": "5",
+      "time": "0320",
+      "channel_id": 961988797933948969
+    },
+    {
+      "message": "ALERTRT",
+      "day_of_week": "0",
+      "time": "2045",
+      "channel_id": 962162345411498055
+    }
+  ]
+}
