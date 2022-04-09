@@ -1,0 +1,16 @@
+{
+  "notifications": [
+    {
+      "message": "meeting jrias",
+      "day_of_week": "5",
+      "time": "0940",
+      "channel_id": 961812366662709279
+    },
+    {
+      "message": "Asease",
+      "day_of_week": "5",
+      "time": "0950",
+      "channel_id": 961812366662709279
+    }
+  ]
+}
