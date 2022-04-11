@@ -64,10 +64,21 @@ async def help(ctx, *args):
         em.add_field(name='Command: list', value='list (all?)', inline=False)
     elif args[0] == 'help':
         em.add_field(name='Command: help', value='help (command)\nEx: help add', inline=False)
+    elif args[0] == 'set_utc_offset':
+        em.add_field(name='Command: set_utc_offset', value='set_utc_offset (offset)\nEx: set_utc_offset -08', inline=False)
+    else:
+        return
     await ctx.send(embed=em)
 
 @bot.command()
 async def set_utc_offset(ctx, offset):
+    if len(offset) !=  3 or (offset[0] != '+' and offset[0] != '-'):
+        await ctx.send('invalid format')
+        return
+    if int(offset[1:3]) > (14 if offset[0] == '+' else 12):
+        await ctx.send('invalid offset')
+        return
+
     f = open(get_guild_file(ctx.guild))
     data = json.load(f)
     f.close()
@@ -77,6 +88,8 @@ async def set_utc_offset(ctx, offset):
     f = open(get_guild_file(ctx.guild), 'w')
     f.write(json.dumps(data, indent=2))
     f.close()
+
+    await ctx.send('UTC offset is now ' + offset + ':00')
 
 # adds notification info to guild json
 @bot.command()
@@ -146,7 +159,7 @@ async def on_guild_join(guild):
 
 async def create_guild_json(guild):
     f = open(get_guild_file(guild), 'w')
-    default_data = {'utc_offset': '+00:00', 'perms_role': 'Add Notis', 'notifications': []}
+    default_data = {'utc_offset': '+00', 'perms_role': 'Add Notis', 'notifications': []}
     f.write(json.dumps(default_data, indent=2))
     f.close()
 
@@ -154,8 +167,9 @@ async def create_guild_json(guild):
 @tasks.loop(seconds=0.5)
 async def update_task():
     while True:
-        if time.gmtime().tm_sec == 0: # update every start of minute
+        if time.gmtime().tm_sec <= 5: # update every start of minute
             await check_notifications()
+            await sleep(20)
         await sleep(0.5)
 
 async def check_notifications():
@@ -167,13 +181,11 @@ async def check_notifications():
         f = open(get_guild_file(guild))
         data = json.load(f)
         hour_offset = int(data['utc_offset'][1:3])
-        minute_offset = int(data['utc_offset'][4:6])
 
         if data['utc_offset'][0] == '-':
             hour_offset = -hour_offset
-            minute_offset = -minute_offset
 
-        guild_time = time.gmtime(time.time() + hour_offset*60*60 + minute_offset*60)
+        guild_time = time.gmtime(time.time() + hour_offset*60*60)
 
         for noti in data['notifications']:
             if noti['day_of_week'] == str(guild_time.tm_wday) and noti['time'] == time.strftime('%H:%M', guild_time):
@@ -184,7 +196,7 @@ async def check_notifications():
         f.close()
 
 def get_guild_file(guild):
-    return 'Guilds/' + guild.name + '_' + str(guild.id) + '.json'
+    return 'Guilds/' + str(guild.id) + '.json'
 
 def main():
     # token here because doesnt matter rn
