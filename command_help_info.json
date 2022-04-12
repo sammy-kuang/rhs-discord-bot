@@ -1,0 +1,9 @@
+{
+  "add": "add (\"message\") (day of week) (hour:minute)\nEx: add \"some meeting\" thursday 16:45",
+  "remove": "remove not even implemented",
+  "list": "list (all?)",
+  "help": "help (command)\nEx: help add",
+  "set_utc_offset": "set_utc_offset (offset)\nEx: set_utc_offset -08",
+  "set_perms_role": "set_perms_role (role_name)\nEx: set_perms_role \"Mod\"",
+  "now": "returns the current time in server's timezone"
+}

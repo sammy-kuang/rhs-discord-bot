@@ -25,6 +25,12 @@
       "day_of_week": "6",
       "time": "17:05",
       "channel_id": 961988797933948969
+    },
+    {
+      "message": "aseA",
+      "day_of_week": "6",
+      "time": "18:10",
+      "channel_id": 961988797933948969
     }
   ]
 }
