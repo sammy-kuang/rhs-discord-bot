@@ -165,14 +165,20 @@ async def list(ctx, *args):
 async def set_utc_offset(ctx, offset):
 
     if not has_perms(ctx.guild, ctx.author):
-        await ctx.send('no perms to use command set_utc_offset')
+        em = discord.Embed()
+        em.add_field(name='Set_utc_offset', value='You have no permissions to use this command')
+        await ctx.send(embed=em)
         return
 
     if len(offset) !=  3 or (offset[0] != '+' and offset[0] != '-'):
-        await ctx.send('invalid format')
+        em = discord.Embed()
+        em.add_field(name='Set_utc_offset', value='Invalid format')
+        await ctx.send(embed=em)
         return
     if int(offset[1:3]) > (14 if offset[0] == '+' else 12):
-        await ctx.send('invalid offset')
+        em = discord.Embed()
+        em.add_field(name='Set_utc_offset', value='Invalid offset, range is -12 to +14')
+        await ctx.send(embed=em)
         return
 
     f = open(get_guild_file(ctx.guild))
@@ -185,13 +191,18 @@ async def set_utc_offset(ctx, offset):
     f.write(json.dumps(data, indent=2))
     f.close()
 
-    await ctx.send('UTC offset is now ' + offset + ':00')
+    em = discord.Embed()
+    em.add_field(name='UTC offset', value='UTC offset is now **' + offset + ':00**')
+
+    await ctx.send(embed=em)
 
 @bot.command()
 async def set_perms_role(ctx, role_name):
 
     if not has_perms(ctx.guild, ctx.author):
-        await ctx.send('no perms to use command set_perms_role')
+        em = discord.Embed()
+        em.add_field(name='Set_perms_role', value='You have no permissions to use this command')
+        await ctx.send(embed=em)
         return
 
     f = open(get_guild_file(ctx.guild))
@@ -203,7 +214,11 @@ async def set_perms_role(ctx, role_name):
     f = open(get_guild_file(ctx.guild), 'w')
     f.write(json.dumps(data, indent=2))
     f.close()
-    await ctx.send('permission for perms is set to ' + role_name)
+
+    em = discord.Embed()
+    em.add_field(name='Permission Role', value='Role with perms is now: **' + role_name + '**')
+
+    await ctx.send(embed=em)
 
 # adds notification info to guild json
 @bot.command()
@@ -215,21 +230,29 @@ async def add(ctx, msg, day, time):
     data = json.load(f)
 
     if not has_perms(ctx.guild, ctx.author):
-        await ctx.send('no perms to use add')
+        em = discord.Embed()
+        em.add_field(name='Add', value='You have no permissions to use this command')
+        await ctx.send(embed=em)
         return
 
     day = day.lower()
     
     # check invalid inputs for command
     if len(time) != 5 or time[2] != ':':
-        await ctx.send('wrong format')
+        em = discord.Embed()
+        em.add_field(name='Add', value='Invalid format')
+        await ctx.send(embed=em)
         return
     if int(time[0:2]) > 23 or int(time[3:5]) > 59:
-        await ctx.send('invalid time')
+        em = discord.Embed()
+        em.add_field(name='Add', value='Invalid time')
+        await ctx.send(embed=em)
         return 
     
     if day not in days_of_week:
-        await ctx.send('invalid day of week')
+        em = discord.Embed()
+        em.add_field(name='Add', value='Invalid day of week')
+        await ctx.send(embed=em)
         return 
 
     noti = {
@@ -246,12 +269,39 @@ async def add(ctx, msg, day, time):
     f = open(get_guild_file(ctx.guild), 'w')
     f.write(json.dumps(data, indent=2))
     f.close()
-    await ctx.send('Notification Added')
-    print('notification added')
+
+    em = discord.Embed()
+    em.add_field(name='Notification', value='Notification added to go off **' + day + ', ' + time + '**')
+
+    await ctx.send(embed=em)
 
 @bot.command()
-async def remove(ctx):
-    await ctx.send('?c CANt remove')
+async def remove(ctx, noti):
+
+    if not has_perms(ctx.guild, ctx.author):
+        em = discord.Embed()
+        em.add_field(name='Remove', value='You have no permissions to use this command')
+        await ctx.send(embed=em)
+        return
+
+    f = open(get_guild_file(ctx.guild))
+    data = json.load(f)
+    f.close()
+
+    em = discord.Embed()
+
+    for guild_noti in data['notifications']:
+        if guild_noti['message'] == noti:
+            data['notifications'].remove(guild_noti)
+            f = open(get_guild_file(ctx.guild), 'w')
+            f.write(json.dumps(data, indent=2))
+            f.close()
+            em.add_field(name='Notification', value='notifications at ___ has been removed')
+            await ctx.send(embed=em)
+            return
+
+    em.add_field(name='Notification', value='Notification at ____ does not exist')
+    await ctx.send(embed=em)
 
 
 def main():
