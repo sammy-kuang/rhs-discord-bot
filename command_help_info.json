@@ -1,9 +1,9 @@
 {
-  "add": "add (\"message\") (day of week) (hour:minute)\nEx: add \"some meeting\" thursday 16:45",
-  "remove": "remove not even implemented",
-  "list": "list (all?)",
+  "add": "add (\"pings\") (\"message\") (day of week) (hour:minute)\nEx: add \"everyone some_role\" \"some meeting\" thursday 16:45\nEx: add \"\" \"Alert\" sunday 00:00",
+  "remove": "remove (\"noti_message\")\nEx: remove \"Club Meeting\" *(removes noti that matches message)*",
+  "list": "list (all?)\nEx: list *(returns notis in current channel)*\nEx: list all *(returns all notifications in server)*",
   "help": "help (command)\nEx: help add",
-  "set_utc_offset": "set_utc_offset (offset)\nEx: set_utc_offset -08",
-  "set_perms_role": "set_perms_role (role_name)\nEx: set_perms_role \"Mod\"",
+  "set_utc_offset": "set_utc_offset (offset)\nEx: set_utc_offset -08\nEx: set_utc_offset +03",
+  "set_perms_role": "set_perms_role (\"role_name\")\nEx: set_perms_role \"Mod\"\nEx: set_perms_role \"Add notis\"",
   "now": "returns the current time in server's timezone"
 }

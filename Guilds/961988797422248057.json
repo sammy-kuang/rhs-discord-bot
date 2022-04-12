@@ -3,34 +3,11 @@
   "perms_role": "Add Notis",
   "notifications": [
     {
-      "message": "tihnasiej",
-      "day_of_week": "6",
-      "time": "17:02",
-      "channel_id": 961988797933948969
-    },
-    {
-      "message": "tihnasiej",
-      "day_of_week": "6",
-      "time": "17:03",
-      "channel_id": 961988797933948969
-    },
-    {
-      "message": "tihnasiej",
-      "day_of_week": "6",
-      "time": "17:04",
-      "channel_id": 961988797933948969
-    },
-    {
-      "message": "tihnasiej",
-      "day_of_week": "6",
-      "time": "17:05",
-      "channel_id": 961988797933948969
-    },
-    {
-      "message": "aseA",
-      "day_of_week": "6",
-      "time": "18:10",
-      "channel_id": 961988797933948969
+      "pings": [],
+      "message": "aseae",
+      "day_of_week": "1",
+      "time": "09:02",
+      "channel_id": 962162345411498055
     }
   ]
 }

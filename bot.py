@@ -69,7 +69,12 @@ async def check_notifications():
                 msg = discord.Embed()
                 msg.add_field(name=noti['message'], value=time.strftime('%Y-%m-%d %H:%M', guild_time), inline=False)
 
-                await bot.get_channel(noti['channel_id']).send(embed=msg)
+                pings = ''
+                for ping in noti['pings']:
+                    pings += '@'
+                    pings += ping
+
+                await bot.get_channel(noti['channel_id']).send(pings ,embed=msg)
         f.close()
 
 @bot.event
@@ -140,16 +145,17 @@ async def list(ctx, *args):
 
     msg = ''
 
-    if len(args) == 0 or args[0] != 'all':
-        for noti in data['notifications']:
-            if noti['channel_id'] == ctx.channel.id:
-                msg += ' - '
-                msg += noti['message']
-                msg += '\n'
-    else:
-        for noti in data['notifications']:
+    for noti in data['notifications']:
+        if noti['channel_id'] == ctx.channel.id or args[0] == 'all':
             msg += ' - '
             msg += noti['message']
+            msg += ' ('
+            for day, num in days_of_week.items():
+                if num == noti['day_of_week']:
+                    msg += day.capitalize()
+            msg += ' '
+            msg += noti['time']
+            msg += ')'
             msg += '\n'
             
     f.close()
@@ -222,7 +228,7 @@ async def set_perms_role(ctx, role_name):
 
 # adds notification info to guild json
 @bot.command()
-async def add(ctx, msg, day, time):
+async def add(ctx, pings, msg, day, time):
     if not os.path.exists(get_guild_file(ctx.guild)):
         create_guild_json(ctx.guild)
 
@@ -256,6 +262,7 @@ async def add(ctx, msg, day, time):
         return 
 
     noti = {
+        'pings': pings.split(' ') if len(pings) != 0 else [],
         'message': msg,
         'day_of_week': days_of_week[day],
         'time': time,
@@ -271,7 +278,7 @@ async def add(ctx, msg, day, time):
     f.close()
 
     em = discord.Embed()
-    em.add_field(name='Notification', value='Notification added to go off **' + day + ', ' + time + '**')
+    em.add_field(name='Notification', value='Notification added to go off **' + day.capitalize() + ', ' + time + '**')
 
     await ctx.send(embed=em)
 
@@ -296,7 +303,7 @@ async def remove(ctx, noti):
             f = open(get_guild_file(ctx.guild), 'w')
             f.write(json.dumps(data, indent=2))
             f.close()
-            em.add_field(name='Notification', value='notifications at ___ has been removed')
+            em.add_field(name='Notification', value='notifications: ' + noti + 'has been removed')
             await ctx.send(embed=em)
             return
 
