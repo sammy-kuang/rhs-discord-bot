@@ -146,7 +146,7 @@ async def list(ctx, *args):
     msg = ''
 
     for noti in data['notifications']:
-        if noti['channel_id'] == ctx.channel.id or args[0] == 'all':
+        if noti['channel_id'] == ctx.channel.id or len(args) > 0 and args[0] == 'all':
             msg += ' - '
             msg += noti['message']
             msg += ' ('
