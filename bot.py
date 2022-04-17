@@ -1,10 +1,9 @@
 import discord
-import json
 import time
-import os.path
 from discord.ext import commands, tasks
 from asyncio import sleep
-# import env
+import env
+import database
 
 bot = commands.Bot(command_prefix='>', help_command=None, status=discord.Status.dnd, activity=discord.Activity(type=discord.ActivityType.watching, name="everyone"))
 
@@ -13,11 +12,7 @@ days_of_week = {'monday': '0', 'tuesday': '1', 'wednesday': '2', 'thursday': '3'
 # helper methods
 def has_perms(guild, user):
 
-    f = open(get_guild_file(guild))
-
-    data = json.load(f)
-
-    f.close()
+    data = database.get_guild_json(guild.id)
 
     if user.guild_permissions.administrator:
         return True
@@ -28,14 +23,9 @@ def has_perms(guild, user):
         
     return False
 
-def get_guild_file(guild):
-    return 'Guilds/' + str(guild.id) + '.json'
-
-async def create_guild_json(guild):
-    f = open(get_guild_file(guild), 'w')
-    default_data = {'utc_offset': '+00', 'perms_role': 'Add Notis', 'notifications': []}
-    f.write(json.dumps(default_data, indent=2))
-    f.close()
+def create_guild_json(guild):
+    default_data = {'_id': guild.id, 'utc_offset': '+00', 'perms_role': 'Add Notis', 'notifications': []}
+    database.create_guild_json(default_data)
 
 
 # bot event and updates
@@ -52,11 +42,10 @@ async def update_task():
 async def check_notifications():
 
     for guild in bot.guilds:
-        if not os.path.exists(get_guild_file(guild)):
-            await create_guild_json(guild)
-            continue
-        f = open(get_guild_file(guild))
-        data = json.load(f)
+        if not database.get_guild_json(guild.id):
+            create_guild_json(guild)
+
+        data = database.get_guild_json(guild.id)
         hour_offset = int(data['utc_offset'][1:3])
 
         if data['utc_offset'][0] == '-':
@@ -75,13 +64,12 @@ async def check_notifications():
                     pings += ping
 
                 await bot.get_channel(noti['channel_id']).send(pings ,embed=msg)
-        f.close()
 
 @bot.event
 async def on_guild_join(guild):
     # create guild file and roles on join
     print('joined', guild)
-    if not os.path.exists(get_guild_file(guild)):
+    if not database.get_guild_json(guild.id):
         await create_guild_json(guild)
         await guild.create_role(name='Add Notis')
 
@@ -99,7 +87,7 @@ async def on_ready():
 # commands 
 
 @bot.command()
-async def help(ctx, *args):
+async def help(ctx: commands.Context, *args):
     em = discord.Embed()
     if len(args) == 0:
         cmds = ''
@@ -109,29 +97,25 @@ async def help(ctx, *args):
             cmds += '\n'
         em.add_field(name='Commands', value=cmds, inline=False)
     else:
-        f = open('command_help_info.json')
-        command_info = json.load(f)
-        if args[0] in command_info:
-            em.add_field(name='Command: ' + args[0], value=command_info[args[0]], inline=False)
+        desc = database.get_command_info(args[0])
+        if desc:
+            em.add_field(name='Command: ' + args[0], value=desc, inline=False)
         else:
             em.add_field(name='Command: ' + args[0], value='command not found', inline=False)
-        f.close()
 
     await ctx.send(embed=em)
 
 @bot.command()
-async def now(ctx):
+async def now(ctx: commands.Context):
 
-    f = open(get_guild_file(ctx.guild))
-    data = json.load(f)
-    f.close()
+    data = database.get_guild_json(ctx.guild.id)
 
     hour_offset = int(data['utc_offset'][1:3])
 
     if data['utc_offset'][0] == '-':
         hour_offset = -hour_offset
 
-    guild_time =  time.gmtime(time.time() + hour_offset*60*60)
+    guild_time = time.gmtime(time.time() + hour_offset*60*60)
 
     em = discord.Embed()
     em.add_field(name="Time now", value=time.strftime('%Y-%m-%d %H:%M', guild_time), inline=False)
@@ -139,9 +123,8 @@ async def now(ctx):
     await ctx.send(embed=em)
 
 @bot.command()
-async def list(ctx, *args):
-    f = open(get_guild_file(ctx.guild))
-    data = json.load(f)
+async def list(ctx: commands.Context, *args):
+    data = database.get_guild_json(ctx.guild.id)
 
     msg = ''
 
@@ -158,8 +141,6 @@ async def list(ctx, *args):
             msg += ')'
             msg += '\n'
             
-    f.close()
-
     if msg == '':
         msg = 'No notifications'
 
@@ -168,7 +149,7 @@ async def list(ctx, *args):
     await ctx.send(embed=em)
 
 @bot.command()
-async def set_utc_offset(ctx, offset):
+async def set_utc_offset(ctx: commands.Context, offset: str):
 
     if not has_perms(ctx.guild, ctx.author):
         em = discord.Embed()
@@ -187,15 +168,11 @@ async def set_utc_offset(ctx, offset):
         await ctx.send(embed=em)
         return
 
-    f = open(get_guild_file(ctx.guild))
-    data = json.load(f)
-    f.close()
+    data = database.get_guild_json(ctx.guild.id)
 
     data['utc_offset'] = offset
 
-    f = open(get_guild_file(ctx.guild), 'w')
-    f.write(json.dumps(data, indent=2))
-    f.close()
+    database.write_guild_json(ctx.guild.id, data)
 
     em = discord.Embed()
     em.add_field(name='UTC offset', value='UTC offset is now **' + offset + ':00**')
@@ -203,7 +180,7 @@ async def set_utc_offset(ctx, offset):
     await ctx.send(embed=em)
 
 @bot.command()
-async def set_perms_role(ctx, role_name):
+async def set_perms_role(ctx: commands.Context, role_name: str):
 
     if not has_perms(ctx.guild, ctx.author):
         em = discord.Embed()
@@ -211,15 +188,11 @@ async def set_perms_role(ctx, role_name):
         await ctx.send(embed=em)
         return
 
-    f = open(get_guild_file(ctx.guild))
-    data = json.load(f)
-    f.close()
+    data = database.get_guild_json(ctx.guild.id)
 
     data['perms_role'] = role_name
 
-    f = open(get_guild_file(ctx.guild), 'w')
-    f.write(json.dumps(data, indent=2))
-    f.close()
+    database.write_guild_json(ctx.guild.id, data)
 
     em = discord.Embed()
     em.add_field(name='Permission Role', value='Role with perms is now: **' + role_name + '**')
@@ -228,12 +201,11 @@ async def set_perms_role(ctx, role_name):
 
 # adds notification info to guild json
 @bot.command()
-async def add(ctx, pings, msg, day, time):
-    if not os.path.exists(get_guild_file(ctx.guild)):
+async def add(ctx: commands.Context, pings: str, msg: str, day: str, time: str):
+    if not database.get_guild_json(ctx.guild.id):
         create_guild_json(ctx.guild)
 
-    f = open(get_guild_file(ctx.guild))
-    data = json.load(f)
+    data = database.get_guild_json(ctx.guild.id)
 
     if not has_perms(ctx.guild, ctx.author):
         em = discord.Embed()
@@ -269,13 +241,9 @@ async def add(ctx, pings, msg, day, time):
         'channel_id': ctx.channel.id
     }
 
-    f.close()
-
     data['notifications'] += [noti]
 
-    f = open(get_guild_file(ctx.guild), 'w')
-    f.write(json.dumps(data, indent=2))
-    f.close()
+    database.write_guild_json(ctx.guild.id, data)
 
     em = discord.Embed()
     em.add_field(name='Notification', value='Notification added to go off **' + day.capitalize() + ', ' + time + '**')
@@ -283,7 +251,7 @@ async def add(ctx, pings, msg, day, time):
     await ctx.send(embed=em)
 
 @bot.command()
-async def remove(ctx, noti):
+async def remove(ctx: commands.Context, noti: str):
 
     if not has_perms(ctx.guild, ctx.author):
         em = discord.Embed()
@@ -291,18 +259,14 @@ async def remove(ctx, noti):
         await ctx.send(embed=em)
         return
 
-    f = open(get_guild_file(ctx.guild))
-    data = json.load(f)
-    f.close()
+    data = database.get_guild_json(ctx.guild.id)
 
     em = discord.Embed()
 
     for guild_noti in data['notifications']:
         if guild_noti['message'] == noti:
             data['notifications'].remove(guild_noti)
-            f = open(get_guild_file(ctx.guild), 'w')
-            f.write(json.dumps(data, indent=2))
-            f.close()
+            database.write_guild_json(ctx.guild.id, data)
             em.add_field(name='Notification', value='notifications: ' + noti + 'has been removed')
             await ctx.send(embed=em)
             return
@@ -312,9 +276,7 @@ async def remove(ctx, noti):
 
 
 def main():
-    # token here because doesnt matter rn
-    bot.run('OTYxNzU5ODUxODMzMzU2Mjk4.Yk9qqQ.Cp-RSjOzlRByBdj36F0hXRIknTw')
-    # bot.run(env.token)
+    bot.run(env.DISCORD_BOT_TOKEN)
 
 if __name__ == '__main__':
     main()
