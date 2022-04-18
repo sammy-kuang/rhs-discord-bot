@@ -5,16 +5,16 @@ from asyncio import sleep
 import env
 import database
 
-bot = commands.Bot(command_prefix='>', help_command=None, status=discord.Status.dnd, activity=discord.Activity(type=discord.ActivityType.watching, name="everyone"))
+bot = commands.Bot(command_prefix='>', help_command=None, status=discord.Status.dnd, activity=discord.Activity(type=discord.ActivityType.watching, name=">help"))
 
 days_of_week = {'monday': '0', 'tuesday': '1', 'wednesday': '2', 'thursday': '3', 'friday': '4', 'saturday': '5', 'sunday': '6'}
 
 # helper methods
-def has_perms(guild, user):
+def has_perms(guild: discord.Guild, user: discord.Member):
 
     data = database.get_guild_json(guild.id)
 
-    if user.guild_permissions.administrator:
+    if user.guild_permissions.administrator or user.guild_permissions.manage_guild:
         return True
     else:
         for role in user.roles:
@@ -66,12 +66,24 @@ async def check_notifications():
                 await bot.get_channel(noti['channel_id']).send(pings ,embed=msg)
 
 @bot.event
-async def on_guild_join(guild):
+async def on_guild_join(guild: discord.Guild):
     # create guild file and roles on join
     print('joined', guild)
     if not database.get_guild_json(guild.id):
         await create_guild_json(guild)
         await guild.create_role(name='Add Notis')
+
+    # welcome message    
+    em = discord.Embed()
+    em.add_field(name='RHS Bot', value='This is a discord bot for reminders, use **' + bot.command_prefix + 
+    'set_utc_offset** to set the timezone of the server, use **' + bot.command_prefix + 'help** for more info.')
+    if guild.system_channel:
+        await guild.system_channel.send(embed=em)
+    else:
+        for channel in guild.channels:
+            if isinstance(channel, discord.TextChannel) and channel.name == 'general':
+                await channel.send(embed=em)
+                break
 
 @bot.event
 async def on_ready():
@@ -95,7 +107,8 @@ async def help(ctx: commands.Context, *args):
             cmds += ' - '
             cmds += cmd.name
             cmds += '\n'
-        em.add_field(name='Commands', value=cmds, inline=False)
+        cmds += '\n'
+        em.add_field(name='Commands', value=cmds+bot.command_prefix+'help (commmand) for more info', inline=False)
     else:
         desc = database.get_command_info(args[0])
         if desc:
